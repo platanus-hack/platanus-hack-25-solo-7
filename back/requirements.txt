@@ -1,11 +1,8 @@
 fastapi
-uvicorn
+uvicorn[standard]
 sqlalchemy
-psycopg2-binary
-python-multipart
-pypdf
-openai
-python-jose[cryptography]
-passlib[bcrypt]
+psycopg[binary]
 python-dotenv
-pandas
+pydantic-settings
+workos
+python-multipart
