@@ -1,4 +1,4 @@
 {
-  "project-name": "<FILL THIS>",
-  "project-description-spanish": "<FILL THIS>"
+  "project-name": "Eska",
+  "project-description-spanish": "Motor automatizado de optimización fiscal para PYMEs en Chile. Extrae datos desde el Formulario 22 (SII) mediante OCR/IA y aplica un análisis basado en reglas tributarias para identificar ineficiencias fiscales, riesgos de contingencia y calcular un índice propietario EskaIQ (0–100)."
 }
