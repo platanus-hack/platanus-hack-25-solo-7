@@ -855,7 +855,6 @@ export default function CompletarPerfilPage() {
                                             onClick={handleNext}
                                             className="bg-[#113522] text-white rounded-lg px-6 py-2 text-sm font-bold shadow-md hover:bg-[#1a4d33] transition-all"
                                         >
-                                        >
                                             {currentStep === 6 ? "Analizar perfil" : "Siguiente →"}
                                         </button>
                                     </div>
