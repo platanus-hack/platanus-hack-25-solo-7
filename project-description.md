@@ -1,0 +1,1 @@
+Eska es una plataforma de préstamos P2P con subastas inversas que rescata a 70 millones de latinoamericanos del limbo crediticio. Los prestatarios publican su necesidad de crédito y prestamistas individuales compiten bajando tasas en tiempo real. El mercado decide la tasa justa, no un algoritmo bancario obsoleto.
