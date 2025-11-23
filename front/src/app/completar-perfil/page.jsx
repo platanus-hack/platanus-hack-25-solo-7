@@ -39,6 +39,8 @@ export default function CompletarPerfilPage() {
         // Step 6: Loan Request
         loanAmount: "",
         loanTerm: "12",
+        loanPurpose: "",
+        wantsPool: false,
     });
 
     const [analysisProgress, setAnalysisProgress] = useState(0);
@@ -270,18 +272,18 @@ export default function CompletarPerfilPage() {
 
             if (response.ok) {
                 // Create Loan Request
-                const loanPayload = {
-                    amount: parseFloat(formData.loanAmount),
-                    term_months: parseInt(formData.loanTerm)
-                };
-
                 const loanResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/loans/`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                     },
                     credentials: "include",
-                    body: JSON.stringify(loanPayload)
+                    body: JSON.stringify({
+                        amount: parseFloat(formData.loanAmount),
+                        term_months: parseInt(formData.loanTerm),
+                        wants_pool: formData.wantsPool,
+                        purpose: formData.loanPurpose
+                    }),
                 });
 
                 if (loanResponse.ok) {
@@ -333,7 +335,18 @@ export default function CompletarPerfilPage() {
                             </div>
                         </div>
 
-                        <div className="mt-6 w-full bg-zinc-50 rounded-xl p-4 border border-zinc-100">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-zinc-700">Motivo del Préstamo</label>
+                            <textarea
+                                value={formData.loanPurpose}
+                                onChange={(e) => setFormData({ ...formData, loanPurpose: e.target.value })}
+                                placeholder="Describe brevemente para qué utilizarás el dinero..."
+                                className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#A6F096] focus:border-transparent transition-all min-h-[100px]"
+                                required
+                            />
+                        </div>
+
+                        <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
                             <div className="flex justify-between items-center mb-2 pb-2 border-b border-zinc-200">
                                 <span className="text-zinc-500 text-sm">Score Bancario</span>
                                 <span className={`font-medium flex items-center gap-1 ${isBankEligible ? "text-zinc-700" : "text-red-500"}`}>
@@ -857,6 +870,25 @@ export default function CompletarPerfilPage() {
                                         >
                                             {currentStep === 6 ? "Analizar perfil" : "Siguiente →"}
                                         </button>
+                                    </div>
+                                )}
+                                {currentStep === 6 && (
+                                    <div className="mt-6 p-4 bg-[#A6F096]/10 rounded-lg border border-[#A6F096]/30">
+                                        <label className="flex items-start gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.wantsPool}
+                                                onChange={(e) => setFormData({ ...formData, wantsPool: e.target.checked })}
+                                                className="mt-1 h-5 w-5 rounded border-[#285c40] text-[#285c40] focus:ring-[#285c40]"
+                                            />
+                                            <div>
+                                                <p className="font-medium text-[#113522]">Unirme a una Bolsa de Préstamos</p>
+                                                <p className="text-sm text-zinc-600 mt-1">
+                                                    Aumenta tus posibilidades de financiamiento al agrupar tu solicitud con otras personas (máx. 5).
+                                                    Los inversionistas diversifican su riesgo y tú obtienes mejores tasas.
+                                                </p>
+                                            </div>
+                                        </label>
                                     </div>
                                 )}
                             </div>

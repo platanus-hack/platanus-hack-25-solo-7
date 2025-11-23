@@ -38,6 +38,6 @@ def init_db():
     This will create all tables defined in models that inherit from Base.
     """
     # Import all models here to ensure they are registered with Base
-    from app.models import user, profile, loan_request  # noqa
+    from app.models import user, profile, loan_request, loan_bid, loan_pool, pool_bid  # noqa
     
     Base.metadata.create_all(bind=engine)

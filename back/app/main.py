@@ -32,11 +32,13 @@ app.add_middleware(
 
 from app.api.auth import router as auth_router
 from app.api.users import router as users_router
-from app.routers import loans as loans_router
+from app.routers import loans, pools, lender
 
 app.include_router(auth_router)
 app.include_router(users_router, prefix="/users", tags=["users"])
-app.include_router(loans_router.router, prefix="/loans", tags=["loans"])
+app.include_router(loans.router, prefix="/loans", tags=["loans"])
+app.include_router(pools.router)
+app.include_router(lender.router)
 
 
 @app.on_event("startup")

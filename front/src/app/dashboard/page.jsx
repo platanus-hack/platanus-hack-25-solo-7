@@ -1,9 +1,11 @@
 "use client";
 
 import AuctionCard from "@/components/AuctionCard";
+import LoanDetail from "@/components/LoanDetail";
+import PoolDetail from "@/components/PoolDetail";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { gsap } from "gsap";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -13,6 +15,10 @@ export default function DashboardPage() {
     const { user, isLoading, isAuthenticated, logout } = useAuth();
     const router = useRouter();
 
+    const searchParams = useSearchParams();
+    const loanId = searchParams.get("solicitud");
+    const poolId = searchParams.get("bolsa");
+
     useEffect(() => {
         // Redirect to login if not authenticated
         if (!isLoading && !isAuthenticated) {
@@ -21,7 +27,7 @@ export default function DashboardPage() {
     }, [isLoading, isAuthenticated, router]);
 
     useEffect(() => {
-        if (headerRef.current) {
+        if (!loanId && headerRef.current) {
             gsap.set(headerRef.current, { opacity: 0, y: -20 });
             gsap.to(headerRef.current, {
                 opacity: 1,
@@ -31,7 +37,7 @@ export default function DashboardPage() {
             });
         }
 
-        if (gridRef.current && gridRef.current.children.length > 0) {
+        if (!loanId && gridRef.current && gridRef.current.children.length > 0) {
             gsap.set(gridRef.current.children, { opacity: 0, y: 30 });
             gsap.to(gridRef.current.children, {
                 opacity: 1,
@@ -42,16 +48,52 @@ export default function DashboardPage() {
                 ease: "power2.out"
             });
         }
-    }, [user]);
+    }, [user, loanId]);
 
-    const auctions = [
-        { id: 1, title: "Vintage Camera Collection", currentBid: "$1,200", timeLeft: "2h 15m" },
-        { id: 2, title: "Abstract Oil Painting", currentBid: "$3,450", timeLeft: "5h 30m" },
-        { id: 3, title: "Rare First Edition Book", currentBid: "$850", timeLeft: "12m 45s" },
-        { id: 4, title: "Mechanical Watch 1950s", currentBid: "$2,100", timeLeft: "1d 4h" },
-        { id: 5, title: "Modernist Chair Set", currentBid: "$900", timeLeft: "3h 00m" },
-        { id: 6, title: "Signed Vinyl Record", currentBid: "$450", timeLeft: "45m 20s" },
-    ];
+    const [loans, setLoans] = useState([]);
+    const [pools, setPools] = useState([]);
+    const [viewMode, setViewMode] = useState("loans"); // "loans" or "pools"
+
+    useEffect(() => {
+        const fetchLoans = async () => {
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/loans/`, {
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    credentials: "include",
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setLoans(data);
+                }
+            } catch (error) {
+                console.error("Error fetching loans:", error);
+            }
+        };
+
+        const fetchPools = async () => {
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pools/`, {
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    credentials: "include",
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setPools(data);
+                }
+            } catch (error) {
+                console.error("Error fetching pools:", error);
+            }
+        };
+
+        if (isAuthenticated && !loanId) {
+            fetchLoans();
+            fetchPools();
+        }
+    }, [isAuthenticated, loanId]);
 
     // Show loading state
     if (isLoading) {
@@ -70,6 +112,18 @@ export default function DashboardPage() {
         return null;
     }
 
+    const handleSelectLoan = (id) => {
+        router.push(`/dashboard?solicitud=${id}`);
+    };
+
+    const handleSelectPool = (id) => {
+        router.push(`/dashboard?bolsa=${id}`);
+    };
+
+    const handleBack = () => {
+        router.push("/dashboard");
+    };
+
     return (
         <div className="min-h-screen  text-black">
             {/* Dashboard Navigation */}
@@ -78,8 +132,9 @@ export default function DashboardPage() {
                     <div className="text-xl font-bold tracking-tight text-[#A6F096]">Eska</div>
                     <div className="flex items-center gap-6">
                         <div className="hidden md:flex items-center gap-6 text-sm font-medium text-[#113522]">
-                            <Link href="#" className="hover:text-[#285c40] transition-colors">Subastas</Link>
-                            <Link href="#" className="hover:text-[#285c40] transition-colors">Ser Prestamista</Link>
+                            <Link href="/dashboard" className="hover:text-[#285c40] transition-colors">Mercado</Link>
+                            <Link href="/dashboard/borrower" className="hover:text-[#285c40] transition-colors">Mis Solicitudes</Link>
+                            <Link href="/dashboard/lender" className="hover:text-[#285c40] transition-colors">Ser Prestamista</Link>
                             <Link href="/completar-perfil" className="hover:text-[#285c40] transition-colors">Solicitar Prestamo</Link>
                         </div>
 
@@ -125,28 +180,92 @@ export default function DashboardPage() {
 
             {/* Main Content */}
             <main className="px-6 py-12 md:px-12">
-                <div ref={headerRef} className="mb-10 flex items-end justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold text-black">
-                            Bienvenido de nuevo, {user.first_name || "Usuario"}
-                        </h1>
-                        <p className="mt-2 text-zinc-400">Descubre y oferta por artículos exclusivos.</p>
-                    </div>
-                    <div className="hidden md:block">
-                        <button className="text-sm font-medium text-zinc-400 ">Ver todas las categorías &rarr;</button>
-                    </div>
-                </div>
+                {loanId ? (
+                    <LoanDetail loanId={loanId} onBack={handleBack} />
+                ) : poolId ? (
+                    <PoolDetail poolId={poolId} onBack={handleBack} />
+                ) : (
+                    <>
+                        <div ref={headerRef} className="mb-10">
+                            <div className="flex items-end justify-between mb-6">
+                                <div>
+                                    <h1 className="text-3xl font-bold text-black">
+                                        Bienvenido de nuevo, {user.first_name || "Usuario"}
+                                    </h1>
+                                    <p className="mt-2 text-zinc-400">Solicitudes de préstamo disponibles para invertir.</p>
+                                </div>
+                                <div className="hidden md:block">
+                                    <Link href="/dashboard/lender" className="text-sm font-medium text-[#285c40] hover:underline">
+                                        Ver mi portafolio →
+                                    </Link>
+                                </div>
+                            </div>
 
-                <div ref={gridRef} className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {auctions.map((auction) => (
-                        <AuctionCard
-                            key={auction.id}
-                            title={auction.title}
-                            currentBid={auction.currentBid}
-                            timeLeft={auction.timeLeft}
-                        />
-                    ))}
-                </div>
+                            {/* Tabs */}
+                            <div className="flex gap-4 border-b border-zinc-200">
+                                <button
+                                    onClick={() => setViewMode("loans")}
+                                    className={`pb-3 px-4 font-medium transition-colors ${viewMode === "loans"
+                                        ? "text-[#113522] border-b-2 border-[#113522]"
+                                        : "text-zinc-500 hover:text-zinc-700"
+                                        }`}
+                                >
+                                    Préstamos Individuales
+                                </button>
+                                <button
+                                    onClick={() => setViewMode("pools")}
+                                    className={`pb-3 px-4 font-medium transition-colors ${viewMode === "pools"
+                                        ? "text-[#113522] border-b-2 border-[#113522]"
+                                        : "text-zinc-500 hover:text-zinc-700"
+                                        }`}
+                                >
+                                    Bolsas de Inversión ({pools.length})
+                                </button>
+                            </div>
+                        </div>
+
+                        <div ref={gridRef} className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {viewMode === "loans" ? (
+                                loans.length > 0 ? (
+                                    loans.map((loan) => (
+                                        <div key={loan.id} onClick={() => handleSelectLoan(loan.id)} className="cursor-pointer">
+                                            <AuctionCard
+                                                title={`Solicitud #${loan.id}`}
+                                                amount={`$${loan.amount.toLocaleString()}`}
+                                                rate={`${(loan.interest_rate * 100).toFixed(2)}%`}
+                                                timeLeft={`${loan.term_months} meses`}
+                                                riskScore={loan.credit_score}
+                                                purpose={loan.purpose}
+                                            />
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="col-span-full text-center py-12 text-zinc-500">
+                                        No hay solicitudes de préstamo disponibles en este momento.
+                                    </div>
+                                )
+                            ) : (
+                                pools.length > 0 ? (
+                                    pools.map((pool) => (
+                                        <div key={pool.id} onClick={() => handleSelectPool(pool.id)} className="cursor-pointer">
+                                            <AuctionCard
+                                                title={`Bolsa #${pool.id}`}
+                                                currentBid={`$${pool.total_amount.toLocaleString()}`}
+                                                timeLeft={`${pool.member_count}/5 préstamos`}
+                                                actionLabel="Invertir en Bolsa"
+                                                purpose="Diversificación en múltiples préstamos con diferentes perfiles de riesgo."
+                                            />
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="col-span-full text-center py-12 text-zinc-500">
+                                        No hay bolsas disponibles en este momento.
+                                    </div>
+                                )
+                            )}
+                        </div>
+                    </>
+                )}
             </main>
         </div>
     );
