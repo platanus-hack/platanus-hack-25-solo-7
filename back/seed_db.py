@@ -49,17 +49,7 @@ try:
     db.commit()
     print(f"Created {len(users)} profiles")
 
-    # Create 3 loan pools with expiration times
-    pools = []
-    for i in range(3):
-        # Pools expire in 24 hours
-        expires_at = datetime.now() + timedelta(hours=24)
-        pool = LoanPool(status=PoolStatus.OPEN, expires_at=expires_at)
-        db.add(pool)
-        pools.append(pool)
-    
-    db.commit()
-    print(f"Created {len(pools)} pools")
+
 
     # Create loan requests and assign to pools
     # Create individual loan request
@@ -84,7 +74,9 @@ try:
     ]
     
     for i in range(3):
-        pool = LoanPool(status=PoolStatus.OPEN)
+        # Set expiration to 24 hours from now
+        expires_at = datetime.now() + timedelta(hours=24)
+        pool = LoanPool(status=PoolStatus.OPEN, expires_at=expires_at)
         db.add(pool)
         db.commit()
         db.refresh(pool)

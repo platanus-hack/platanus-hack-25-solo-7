@@ -41,6 +41,28 @@ app.include_router(pools.router)
 app.include_router(lender.router)
 
 
+import asyncio
+from app.database import init_db, SessionLocal
+from app.services.pool_service import process_expired_pools
+
+async def check_expired_pools_loop():
+    """Background task to check for expired pools periodically."""
+    while True:
+        try:
+            # Create a new DB session
+            db = SessionLocal()
+            try:
+                results = process_expired_pools(db)
+                if results:
+                    print(f"Background task processed pools: {results}")
+            finally:
+                db.close()
+        except Exception as e:
+            print(f"Error in background pool check: {e}")
+        
+        # Wait for 60 seconds before next check
+        await asyncio.sleep(60)
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on application startup."""
@@ -48,6 +70,10 @@ async def startup_event():
     print(f"📊 Initializing database...")
     init_db()
     print("✅ Database initialized")
+    
+    # Start background task
+    asyncio.create_task(check_expired_pools_loop())
+    print("⏰ Background pool expiration task started")
 
 
 @app.get("/")

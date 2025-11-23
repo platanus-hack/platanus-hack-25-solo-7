@@ -3,70 +3,63 @@ from typing import Optional
 from app.services.auth import load_sealed_session
 
 
-async def get_current_user(request: Request) -> Optional[dict]:
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.models.user import User
+from fastapi import Depends
+
+async def get_current_user(request: Request, db: Session = Depends(get_db)) -> Optional[dict]:
     """
     Dependency to get the current authenticated user.
-    
-    Args:
-        request: FastAPI request object
-        
-    Returns:
-        User dict or None if not authenticated
-        
-    Raises:
-        HTTPException: If session is invalid or expired
+    Ensures user exists in local database.
     """
     session_cookie = request.cookies.get("wos-session")
     
-    if session_cookie:
-        print(f"Session cookie received: {session_cookie[:10]}...")
-    else:
-        print("No session cookie found")
-    
     if not session_cookie:
-        print("No session cookie found")
         return None
     
     try:
         session = load_sealed_session(session_cookie)
         auth_response = session.authenticate()
         
+        user_data = None
+        
         if auth_response.authenticated:
-            print(f"User authenticated: {auth_response.user.email}")
-            return {
-                "id": auth_response.user.id,
-                "email": auth_response.user.email,
-                "first_name": auth_response.user.first_name,
-                "last_name": auth_response.user.last_name,
-                "profile_picture_url": auth_response.user.profile_picture_url,
-                "email_verified": auth_response.user.email_verified
-            }
-        
-        print(f"Authentication failed: {auth_response.reason}")
-        
-        # Try to refresh the session
-        if auth_response.reason != "no_session_cookie_provided":
+            user_data = auth_response.user
+        elif auth_response.reason != "no_session_cookie_provided":
+            # Try refresh
             try:
                 refresh_response = session.refresh()
                 if refresh_response.authenticated:
-                    print("Session refreshed successfully")
-                    # Note: In a real scenario, you'd need to update the cookie
-                    # This is handled in the middleware/endpoint level
-                    return {
-                        "id": refresh_response.user.id,
-                        "email": refresh_response.user.email,
-                        "first_name": refresh_response.user.first_name,
-                        "last_name": refresh_response.user.last_name,
-                        "profile_picture_url": refresh_response.user.profile_picture_url,
-                        "email_verified": refresh_response.user.email_verified
-                    }
-            except Exception as e:
-                print(f"Error refreshing session: {e}")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Session expired. Please log in again."
-                )
+                    user_data = refresh_response.user
+            except Exception:
+                pass
         
+        if user_data:
+            # Sync with local DB
+            db_user = db.query(User).filter(User.id == user_data.id).first()
+            if not db_user:
+                print(f"Syncing user {user_data.id} to local DB")
+                new_user = User(
+                    id=user_data.id,
+                    email=user_data.email,
+                    first_name=user_data.first_name,
+                    last_name=user_data.last_name,
+                    profile_picture_url=user_data.profile_picture_url,
+                    email_verified=str(user_data.email_verified)
+                )
+                db.add(new_user)
+                db.commit()
+            
+            return {
+                "id": user_data.id,
+                "email": user_data.email,
+                "first_name": user_data.first_name,
+                "last_name": user_data.last_name,
+                "profile_picture_url": user_data.profile_picture_url,
+                "email_verified": user_data.email_verified
+            }
+            
         return None
         
     except Exception as e:
